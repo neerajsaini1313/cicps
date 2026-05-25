@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="CICPS - Complaint Intelligence & Crime Pattern System, NCT Delhi">
+<title>CICPS — Complaint Intelligence & Crime Pattern System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+
+<!-- ════════════════ TOPBAR ════════════════ -->
+<div id="topbar">
+  <div class="tb-logo">
+    <div class="tb-icon">⬡</div>
+    <div>
+      <div class="tb-appname">CICPS</div>
+      <div class="tb-tagline" id="tb-tagline">COMPLAINT INTELLIGENCE &amp; CRIME PATTERN SYSTEM · NCT DELHI</div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <span class="chip chip-g">● <span class="t" data-en="ONLINE" data-hi="ऑनलाइन">ONLINE</span></span>
+  <span class="chip chip-b">NCT DELHI</span>
+  <span class="chip chip-r"><span class="t" data-en="RESTRICTED" data-hi="प्रतिबंधित">RESTRICTED</span></span>
+  <div class="tb-right">
+    <div id="tb-clock"></div>
+    <button class="lang-btn" id="lang-btn" title="Toggle Hindi/English">हिं</button>
+    <button class="icon-btn" id="theme-btn" title="Toggle Dark/Light Mode">☀</button>
+  </div>
+</div>
+
+<div id="bodywrap">
+
+<!-- ════════════════ SIDEBAR ════════════════ -->
+<div id="sidebar">
+  <div class="sb-stat-box">
+    <div class="sb-stat-label t" data-en="TOTAL RECORDS" data-hi="कुल रिकॉर्ड">TOTAL RECORDS</div>
+    <div class="sb-stat-value" id="sb-total">0</div>
+    <div class="sb-stat-sub t" data-en="Location entries" data-hi="स्थान प्रविष्टियाँ">Location entries</div>
+  </div>
+  <div class="sb-stat-box">
+    <div class="sb-stat-label t" data-en="PERIOD" data-hi="अवधि">PERIOD</div>
+    <div class="sb-stat-value" id="sb-period" style="font-size:13px;line-height:1.5;margin-top:3px">—</div>
+  </div>
+
+  <div class="sb-section-label t" data-en="Navigation" data-hi="नेविगेशन">Navigation</div>
+  <div class="nav-item active" data-page="dashboard"><span class="ni">▦</span><span class="t" data-en="Dashboard" data-hi="डैशबोर्ड">Dashboard</span></div>
+  <div class="nav-item" data-page="geo"><span class="ni">◎</span><span class="t" data-en="Geo Intelligence" data-hi="भू-खुफिया">Geo Intelligence</span></div>
+  <div class="nav-item" data-page="analytics"><span class="ni">∷</span><span class="t" data-en="Analytics" data-hi="विश्लेषण">Analytics</span></div>
+  <div class="nav-item" data-page="search"><span class="ni">⌕</span><span class="t" data-en="Search" data-hi="खोज">Search</span></div>
+  <div class="nav-item" data-page="records"><span class="ni">☰</span><span class="t" data-en="Records" data-hi="रिकॉर्ड">Records</span></div>
+  <div class="nav-item" data-page="upload"><span class="ni">⬆</span><span class="t" data-en="Upload" data-hi="अपलोड">Upload</span></div>
+  <div class="nav-item" data-page="insights"><span class="ni">◈</span><span class="t" data-en="Insights" data-hi="अंतर्दृष्टि">Insights</span></div>
+
+  <div class="sb-section-label t" data-en="Districts" data-hi="जिले">Districts</div>
+  <div class="sb-mini-bars" id="sb-mini-bars"></div>
+
+  <div class="sb-footer">
+    <span class="live-dot"></span> <span class="t" data-en="LIVE" data-hi="लाइव">LIVE</span><br>
+    <span class="t" data-en="JURISDICTION" data-hi="क्षेत्राधिकार">JURISDICTION</span>: NCT DELHI<br>
+    <span class="t" data-en="CLASSIFICATION" data-hi="वर्गीकरण">CLASSIFICATION</span>: <span class="t" data-en="RESTRICTED" data-hi="प्रतिबंधित">RESTRICTED</span><br>
+    CICPS v4.1
+  </div>
+</div>
+
+<!-- ════════════════ MAIN ════════════════ -->
+<div id="main"><div id="content">
+
+<!-- ▓▓▓ DASHBOARD ▓▓▓ -->
+<div class="page active" id="page-dashboard">
+
+  <!-- Empty state when no data -->
+  <div id="dash-empty" style="display:none">
+    <div class="panel">
+      <div class="panel-body">
+        <div class="empty-state">
+          <div class="empty-state-icon">📁</div>
+          <div class="empty-state-title t" data-en="No Data Loaded" data-hi="कोई डेटा नहीं">No Data Loaded</div>
+          <div class="empty-state-desc t" data-en="Upload a CSV file to get started" data-hi="प्रारंभ करने के लिए CSV फ़ाइल अपलोड करें">Upload a CSV file to get started</div>
+          <button class="btn btn-primary" onclick="navTo('upload')">
+            <span class="t" data-en="Upload File" data-hi="फ़ाइल अपलोड करें">Upload File</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard with data -->
+  <div id="dash-content">
+    <div class="kpi-grid-4">
+      <div class="kpi-card kc-b"><div class="kc-label t" data-en="TOTAL RECORDS" data-hi="कुल रिकॉर्ड">TOTAL RECORDS</div><div class="kc-value" id="kv-total">0</div><div class="kc-sub" id="kv-total-sub">—</div></div>
+      <div class="kpi-card kc-r"><div class="kc-label t" data-en="TOP DISTRICT" data-hi="शीर्ष जिला">TOP DISTRICT</div><div class="kc-value" id="kv-top-dist">—</div><div class="kc-sub" id="kv-top-dist-sub">—</div></div>
+      <div class="kpi-card kc-g"><div class="kc-label t" data-en="UNIQUE MOBILES" data-hi="अद्वितीय मोबाइल">UNIQUE MOBILES</div><div class="kc-value" id="kv-mob">0</div><div class="kc-sub t" data-en="Distinct numbers" data-hi="अलग नंबर">Distinct numbers</div></div>
+      <div class="kpi-card kc-y"><div class="kc-label t" data-en="PEAK HOUR" data-hi="पीक समय">PEAK HOUR</div><div class="kc-value" id="kv-peak">—</div><div class="kc-sub" id="kv-peak-sub">—</div></div>
+    </div>
+    <div class="kpi-grid-4">
+      <div class="kpi-card kc-b"><div class="kc-label t" data-en="UNIQUE IMEIs" data-hi="अद्वितीय IMEI">UNIQUE IMEIs</div><div class="kc-value" id="kv-imei">0</div><div class="kc-sub t" data-en="Distinct devices" data-hi="अलग डिवाइस">Distinct devices</div></div>
+      <div class="kpi-card kc-r"><div class="kc-label t" data-en="TOP PROVIDER" data-hi="शीर्ष प्रदाता">TOP PROVIDER</div><div class="kc-value" id="kv-prov">—</div><div class="kc-sub" id="kv-prov-sub">—</div></div>
+      <div class="kpi-card kc-g"><div class="kc-label t" data-en="DISTRICTS" data-hi="जिले">DISTRICTS</div><div class="kc-value" id="kv-dists">0</div><div class="kc-sub t" data-en="Active in dataset" data-hi="डेटासेट में सक्रिय">Active in dataset</div></div>
+      <div class="kpi-card kc-y"><div class="kc-label t" data-en="TOP COORDINATE" data-hi="शीर्ष निर्देशांक">TOP COORDINATE</div><div class="kc-value" id="kv-top-hs">—</div><div class="kc-sub" id="kv-top-hs-sub">—</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title t" data-en="District Distribution" data-hi="जिला वितरण">District Distribution</span><span class="panel-sub">BY COUNT</span></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-dist"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title t" data-en="Hourly Activity" data-hi="प्रति घंटा गतिविधि">Hourly Activity</span><span class="panel-sub">24H PATTERN</span></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-hour"></canvas></div></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title t" data-en="Provider Split" data-hi="प्रदाता विभाजन">Provider Split</span></div>
+        <div class="panel-body" style="display:flex;justify-content:center;height:200px"><canvas id="chart-prov" style="max-width:220px"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title t" data-en="District Intensity" data-hi="जिला तीव्रता">District Intensity</span><span class="panel-sub">RELATIVE SHARE</span></div>
+        <div class="panel-body" id="dist-bars" style="max-height:200px;overflow-y:auto"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title t" data-en="Daily Trend" data-hi="दैनिक प्रवृत्ति">Daily Trend</span><span class="panel-sub" id="daily-period-label">—</span></div>
+      <div class="panel-body"><div class="chart-wrap" style="height:160px"><canvas id="chart-date"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ▓▓▓ GEO ▓▓▓ -->
+<div class="page" id="page-geo">
+  <div class="kpi-grid-4">
+    <div class="kpi-card kc-b"><div class="kc-label t" data-en="GEO-TAGGED" data-hi="भू-टैग">GEO-TAGGED</div><div class="kc-value" id="geo-total">0</div><div class="kc-sub t" data-en="With coordinates" data-hi="निर्देशांक के साथ">With coordinates</div></div>
+    <div class="kpi-card kc-r"><div class="kc-label t" data-en="TOP HOTSPOT" data-hi="शीर्ष हॉटस्पॉट">TOP HOTSPOT</div><div class="kc-value" id="geo-hs-count">—</div><div class="kc-sub" id="geo-hs-coord">—</div></div>
+    <div class="kpi-card kc-g"><div class="kc-label t" data-en="DATE RANGE" data-hi="दिनांक सीमा">DATE RANGE</div><div class="kc-value" id="geo-range" style="font-size:14px;line-height:1.3;margin-top:3px">—</div><div class="kc-sub t" data-en="Coverage period" data-hi="कवरेज अवधि">Coverage period</div></div>
+    <div class="kpi-card kc-y"><div class="kc-label t" data-en="UNIQUE COORDS" data-hi="अद्वितीय निर्देशांक">UNIQUE COORDS</div><div class="kc-value" id="geo-uniq">—</div><div class="kc-sub t" data-en="Map points" data-hi="मानचित्र बिंदु">Map points</div></div>
+  </div>
+  <div class="panel" style="position:relative">
+    <div class="panel-header">
+      <span class="panel-title t" data-en="Geo-Spatial Map" data-hi="भू-स्थानिक मानचित्र">Geo-Spatial Map</span>
+      <div class="map-mode-btns">
+        <button class="map-mode-btn active" id="map-btn-cluster" onclick="setMapMode('cluster')"><span class="t" data-en="Cluster" data-hi="क्लस्टर">Cluster</span></button>
+        <button class="map-mode-btn" id="map-btn-heat" onclick="setMapMode('heat')"><span class="t" data-en="Heat" data-hi="ताप">Heat</span></button>
+        <button class="map-mode-btn" id="map-btn-hotspot" onclick="setMapMode('hotspot')"><span class="t" data-en="Hotspots" data-hi="हॉटस्पॉट">Hotspots</span></button>
+      </div>
+    </div>
+    <div style="position:relative">
+      <div id="map"></div>
+      <div class="map-legend">
+        <div class="map-legend-title t" data-en="LEGEND" data-hi="किंवदंती">LEGEND</div>
+        <div class="map-legend-row"><span class="map-legend-dot" style="background:#fc8181"></span><span class="t" data-en="High (10+)" data-hi="उच्च (10+)">High (10+)</span></div>
+        <div class="map-legend-row"><span class="map-legend-dot" style="background:#f6e05e"></span><span class="t" data-en="Medium (5-9)" data-hi="मध्यम (5-9)">Medium (5-9)</span></div>
+        <div class="map-legend-row"><span class="map-legend-dot" style="background:#63b3ed"></span><span class="t" data-en="Low (1-4)" data-hi="कम (1-4)">Low (1-4)</span></div>
+        <div id="map-pt-count"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title t" data-en="Top Repeated Coordinates" data-hi="शीर्ष दोहराए निर्देशांक">Top Repeated Coordinates</span><span class="panel-sub t" data-en="BY HIT COUNT" data-hi="हिट संख्या द्वारा">BY HIT COUNT</span></div>
+    <div class="panel-body" id="hs-list"></div>
+  </div>
+</div>
+
+<!-- ▓▓▓ ANALYTICS ▓▓▓ -->
+<div class="page" id="page-analytics">
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title t" data-en="Monthly Volume" data-hi="मासिक मात्रा">Monthly Volume</span></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-month"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title t" data-en="Provider × District" data-hi="प्रदाता × जिला">Provider × District</span><span class="panel-sub">STACKED</span></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-provdist"></canvas></div></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title t" data-en="Daily Frequency" data-hi="दैनिक आवृत्ति">Daily Frequency</span></div>
+    <div class="panel-body"><div class="chart-wrap" style="height:165px"><canvas id="chart-date2"></canvas></div></div>
+  </div>
+  <div class="grid-3">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title t" data-en="Hour Distribution" data-hi="घंटा वितरण">Hour Distribution</span></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-hour2"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title t" data-en="District Share" data-hi="जिला हिस्सा">District Share</span></div>
+      <div class="panel-body" style="display:flex;justify-content:center;height:200px"><canvas id="chart-distpie"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title t" data-en="Districts Ranked" data-hi="जिले क्रमबद्ध">Districts Ranked</span></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-distbar"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ▓▓▓ SEARCH ▓▓▓ -->
+<div class="page" id="page-search">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title t" data-en="Search & Query" data-hi="खोज और प्रश्न">Search & Query</span>
+      <span class="panel-sub" id="search-total-label"></span>
+    </div>
+    <div class="panel-body" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px">
+        <select class="form-select" id="s-field" style="min-width:155px">
+          <option value="all"    class="t" data-en="All Fields"     data-hi="सभी क्षेत्र">All Fields</option>
+          <option value="mob"    class="t" data-en="Mobile Number"  data-hi="मोबाइल नंबर">Mobile Number</option>
+          <option value="imei">IMEI</option>
+          <option value="dist"   class="t" data-en="District"       data-hi="जिला">District</option>
+          <option value="prov"   class="t" data-en="Provider"       data-hi="प्रदाता">Provider</option>
+          <option value="victim" class="t" data-en="Victim"         data-hi="पीड़ित">Victim</option>
+          <option value="addr"   class="t" data-en="Address"        data-hi="पता">Address</option>
+          <option value="ackdet" class="t" data-en="Case Reference" data-hi="केस संदर्भ">Case Reference</option>
+        </select>
+        <input class="form-input" id="s-query" autocomplete="off" style="flex:1"
+               placeholder="Mobile, IMEI, district, address, victim, case ref…">
+        <button class="btn btn-primary" onclick="doSearch()"><span class="t" data-en="Search" data-hi="खोजें">Search</span></button>
+        <button class="btn btn-ghost"   onclick="clearSearch()"><span class="t" data-en="Clear" data-hi="साफ़">Clear</span></button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select class="form-select" id="s-filter-prov" style="min-width:130px">
+          <option value="" class="t" data-en="All Providers" data-hi="सभी प्रदाता">All Providers</option>
+        </select>
+        <select class="form-select" id="s-filter-dist" style="min-width:148px">
+          <option value="" class="t" data-en="All Districts" data-hi="सभी जिले">All Districts</option>
+        </select>
+        <input type="date" class="form-input" id="s-from" style="width:148px">
+        <span style="color:var(--t2);font-size:12px">→</span>
+        <input type="date" class="form-input" id="s-to" style="width:148px">
+      </div>
+      <div id="s-hint" style="font-family:var(--mono);font-size:10px;color:var(--t2)">
+        <span class="t" data-en="Enter search term or apply filters, then press Search or Enter." data-hi="खोज शब्द दर्ज करें या फ़िल्टर लगाएं, फिर खोजें दबाएं।">Enter search term or apply filters, then press Search or Enter.</span>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title t" data-en="Results" data-hi="परिणाम">Results</span>
+      <span id="s-result-count" class="panel-sub"></span>
+    </div>
+    <div id="s-results" style="padding:14px;max-height:500px;overflow-y:auto">
+      <div class="empty-state" style="padding:40px">
+        <span class="t" data-en="No active query" data-hi="कोई सक्रिय खोज नहीं">No active query</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ▓▓▓ RECORDS ▓▓▓ -->
+<div class="page" id="page-records">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title t" data-en="Records Table" data-hi="रिकॉर्ड तालिका">Records Table</span>
+      <button class="btn btn-success" onclick="exportCSV()">
+        ↓ <span class="t" data-en="Export CSV" data-hi="CSV निर्यात">Export CSV</span>
+      </button>
+    </div>
+    <!-- Filters -->
+    <div style="padding:9px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select class="form-select" id="f-dist" onchange="applyFilters()">
+        <option value="" class="t" data-en="All Districts" data-hi="सभी जिले">All Districts</option>
+      </select>
+      <select class="form-select" id="f-prov" onchange="applyFilters()">
+        <option value="" class="t" data-en="All Providers" data-hi="सभी प्रदाता">All Providers</option>
+      </select>
+      <input class="form-input" id="f-mobile" placeholder="Mobile…" style="width:140px" oninput="applyFilters()">
+      <input type="date" class="form-input" id="f-from" onchange="applyFilters()" style="width:140px">
+      <span style="color:var(--t2);font-size:11px">→</span>
+      <input type="date" class="form-input" id="f-to" onchange="applyFilters()" style="width:140px">
+      <button class="btn btn-ghost" onclick="resetFilters()"><span class="t" data-en="Reset" data-hi="रीसेट">Reset</span></button>
+      <span id="f-count" style="font-family:var(--mono);font-size:10px;color:var(--a);margin-left:auto"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th onclick="sortTable(0)">#</th>
+          <th onclick="sortTable(1)" class="t" data-en="DISTRICT ↕" data-hi="जिला ↕">DISTRICT ↕</th>
+          <th onclick="sortTable(2)" class="t" data-en="MOBILE ↕"   data-hi="मोबाइल ↕">MOBILE ↕</th>
+          <th onclick="sortTable(3)">IMEI</th>
+          <th onclick="sortTable(4)" class="t" data-en="PROVIDER ↕" data-hi="प्रदाता ↕">PROVIDER ↕</th>
+          <th onclick="sortTable(5)" class="t" data-en="DATE/TIME ↕" data-hi="दिनांक/समय ↕">DATE/TIME ↕</th>
+          <th class="t" data-en="LATITUDE"  data-hi="अक्षांश">LATITUDE</th>
+          <th class="t" data-en="LONGITUDE" data-hi="देशांतर">LONGITUDE</th>
+          <th class="t" data-en="ADDRESS"   data-hi="पता">ADDRESS</th>
+          <th class="t" data-en="VICTIM"    data-hi="पीड़ित">VICTIM</th>
+        </tr></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+<!-- ▓▓▓ UPLOAD ▓▓▓ -->
+<div class="page" id="page-upload">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title t" data-en="Data Upload" data-hi="डेटा अपलोड">Data Upload</span>
+      <button class="btn btn-danger" onclick="confirmReset()">
+        <span class="t" data-en="Delete All Data" data-hi="सभी डेटा हटाएं">Delete All Data</span>
+      </button>
+    </div>
+    <div class="panel-body">
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+        <span class="upload-zone-icon">📁</span>
+        <div class="upload-zone-title t" data-en="Drop CSV file here or click to browse" data-hi="यहाँ CSV फ़ाइल छोड़ें या क्लिक करें">Drop CSV file here or click to browse</div>
+        <div class="upload-zone-sub">
+          <span class="t" data-en="Accepts .csv format · Auto-detects all column names · Removes duplicates · Validates coordinates · New data integrates automatically" data-hi=".csv प्रारूप स्वीकार करता है · सभी कॉलम नाम स्वतः पहचानता है · डुप्लीकेट हटाता है · निर्देशांक सत्यापित करता है">Accepts .csv format · Auto-detects all column names · Removes duplicates · Validates coordinates · New data integrates automatically</span>
+        </div>
+        <input type="file" id="file-input" accept=".csv" style="display:none" onchange="handleFileSelect(event)">
+      </div>
+      <div id="upload-status" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title t" data-en="Expected Columns" data-hi="अपेक्षित कॉलम">Expected Columns</span></div>
+      <div class="table-wrap" style="max-height:130px">
+        <table>
+          <thead><tr><th>State</th><th>District</th><th>Mobile</th><th>IMEI</th><th>Provider</th><th>Location Fetch Time</th><th>Latitude</th><th>Longitude</th><th>Address</th><th>ackdet</th><th>victim</th></tr></thead>
+          <tbody><tr>
+            <td style="color:var(--t2)">DELHI</td><td style="color:var(--t2)">WEST</td>
+            <td style="color:var(--t2)">919XXXXXXXXX</td><td style="color:var(--t2)">86XXX…</td>
+            <td style="color:var(--t2)">AIRTEL</td><td style="color:var(--t2)">DD-MM-YYYY HH:MM</td>
+            <td style="color:var(--t2)">28.XXXX</td><td style="color:var(--t2)">77.XXXX</td>
+            <td style="color:var(--t2)">Full address</td><td style="color:var(--t2)">Case ref</td><td style="color:var(--t2)">Name</td>
+          </tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title t" data-en="Upload History" data-hi="अपलोड इतिहास">Upload History</span></div>
+      <div class="panel-body" id="upload-history">
+        <div class="empty-state" style="padding:20px">
+          <span class="t" data-en="No files uploaded yet" data-hi="अभी तक कोई फ़ाइल अपलोड नहीं">No files uploaded yet</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ▓▓▓ INSIGHTS ▓▓▓ -->
+<div class="page" id="page-insights">
+  <div class="kpi-grid-3">
+    <div class="kpi-card kc-r"><div class="kc-label t" data-en="CRITICAL FLAGS" data-hi="गंभीर संकेत">CRITICAL FLAGS</div><div class="kc-value" id="ins-kv-critical">—</div><div class="kc-sub t" data-en="Immediate attention" data-hi="तत्काल ध्यान">Immediate attention</div></div>
+    <div class="kpi-card kc-y"><div class="kc-label t" data-en="PATTERN ALERTS" data-hi="पैटर्न अलर्ट">PATTERN ALERTS</div><div class="kc-value" id="ins-kv-pattern">—</div><div class="kc-sub t" data-en="Behavioral anomalies" data-hi="व्यवहार विसंगतियां">Behavioral anomalies</div></div>
+    <div class="kpi-card kc-g"><div class="kc-label t" data-en="DATA QUALITY" data-hi="डेटा गुणवत्ता">DATA QUALITY</div><div class="kc-value">HIGH</div><div class="kc-sub t" data-en="Verified dataset" data-hi="सत्यापित डेटासेट">Verified dataset</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title t" data-en="Automated Intelligence Summary" data-hi="स्वचालित खुफिया सारांश">Automated Intelligence Summary</span>
+      <button class="btn btn-success" onclick="exportReport()">↓ <span class="t" data-en="Export Report" data-hi="रिपोर्ट निर्यात">Export Report</span></button>
+    </div>
+    <div class="panel-body" id="insights-container" style="max-height:580px;overflow-y:auto">
+      <div class="empty-state" style="padding:30px">
+        <span class="t" data-en="Upload data to generate insights" data-hi="अंतर्दृष्टि के लिए डेटा अपलोड करें">Upload data to generate insights</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div></div></div>
+
+<!-- ════════════════ STATUSBAR ════════════════ -->
+<div id="statusbar">
+  <div class="status-dot"><span class="dot" style="background:var(--a3)"></span><span class="t" data-en="DATABASE OK" data-hi="डेटाबेस ठीक">DATABASE OK</span></div>
+  <div class="status-dot"><span class="dot" style="background:var(--a3)"></span><span class="t" data-en="GEO ACTIVE" data-hi="भू सक्रिय">GEO ACTIVE</span></div>
+  <div class="status-dot"><span class="dot" style="background:var(--a4)"></span><span id="status-record-count">0 RECORDS</span></div>
+  <div class="status-dot"><span class="dot" style="background:var(--a)"></span>NCT DELHI</div>
+  <div style="margin-left:auto">CICPS v4.1</div>
+</div>
+
+<!-- ════════════════ MODAL ════════════════ -->
+<div class="modal-backdrop" id="detail-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title t" data-en="Record Detail" data-hi="रिकॉर्ड विवरण">Record Detail</div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- Data from Flask -->
+<script>
+  var R = {{ records_json | safe }};
+  var S = {{ summary_json | safe }};
+</script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
